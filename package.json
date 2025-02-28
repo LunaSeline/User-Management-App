@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "jest"
+    "test": "echo \"No tests specified\" && exit 1"
   },
   "keywords": [],
   "author": "Hrudya",
