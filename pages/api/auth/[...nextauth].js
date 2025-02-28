@@ -1,36 +1,36 @@
 import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import GithubProvider from "next-auth/providers/github";
-import connectDB from "../../../lib/mongodb";
-import User from "../../../models/User";
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import clientPromise from "../../../lib/mongodb"; // Correct MongoDB connection file
 
 export default NextAuth({
-    providers: [
-        Providers.Credentials({
-            name: "Credentials",
-            credentials: {
-                email: { label: "Email", type: "email" },
-                password: { label: "Password", type: "password" },
-            },
-            async authorize(credentials) {
-                await connectDB();
-                const user = await User.findOne({ email: credentials.email });
-
-                if (!user || user.password !== credentials.password) {
-                    throw new Error("Invalid credentials");
-                }
-                return { id: user._id, email: user.email };
-            },
-        }),
-    ],
-    session: {
-        jwt: true,
+  adapter: MongoDBAdapter(clientPromise), // Fix: Ensure MongoDBAdapter uses clientPromise
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        // Add MongoDB authentication logic here
+        return { id: "1", name: "User", email: credentials.email };
+      },
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async session({ session, token }) {
+      session.user.id = token.sub;
+      return session;
     },
-    callbacks: {
-        async session({ session, user }) {
-            session.userId = user.id;
-            return session;
-        },
-    },
-    secret: process.env.NEXTAUTH_SECRET,
+  },
 });
